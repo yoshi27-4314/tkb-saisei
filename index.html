@@ -6,7 +6,7 @@
 <title>テイクバック 再生事業部</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1C2541">
-<link rel="stylesheet" href="css/style.css?v=20260417">
+<link rel="stylesheet" href="css/style.css?v=20260417b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
@@ -22,19 +22,46 @@
       <p class="login-sub">再生事業部</p>
     </div>
     <div class="login-form">
-      <div class="form-group">
-        <label>スタッフ名</label>
-        <select id="loginStaff">
-          <option value="">選択してください</option>
-          <option value="平野光雄">平野光雄</option>
-          <option value="松本豊彦">松本豊彦</option>
-          <option value="三島圭織">三島圭織</option>
-          <option value="浅野儀頼">浅野儀頼（管理者）</option>
-        </select>
+      <!-- Step 1: スタッフ選択 -->
+      <div id="loginStep1">
+        <div class="form-group">
+          <label>スタッフ名</label>
+          <select id="loginStaff" onchange="onStaffSelect()">
+            <option value="">選択してください</option>
+            <option value="平野光雄">平野光雄</option>
+            <option value="松本豊彦">松本豊彦</option>
+            <option value="三島圭織">三島圭織</option>
+            <option value="浅野儀頼">浅野儀頼（管理者）</option>
+          </select>
+        </div>
       </div>
-      <button class="btn btn-gold" onclick="doLogin()">ログイン</button>
+      <!-- Step 2: PIN入力 -->
+      <div id="loginStep2" style="display:none">
+        <p id="pinPrompt" style="text-align:center; font-size:14px; color:var(--sub); margin-bottom:16px;"></p>
+        <div class="pin-display" id="pinDisplay">
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+          <span class="pin-dot"></span>
+        </div>
+        <div class="pin-pad">
+          <button class="pin-key" onclick="pinInput(1)">1</button>
+          <button class="pin-key" onclick="pinInput(2)">2</button>
+          <button class="pin-key" onclick="pinInput(3)">3</button>
+          <button class="pin-key" onclick="pinInput(4)">4</button>
+          <button class="pin-key" onclick="pinInput(5)">5</button>
+          <button class="pin-key" onclick="pinInput(6)">6</button>
+          <button class="pin-key" onclick="pinInput(7)">7</button>
+          <button class="pin-key" onclick="pinInput(8)">8</button>
+          <button class="pin-key" onclick="pinInput(9)">9</button>
+          <button class="pin-key pin-key-empty"></button>
+          <button class="pin-key" onclick="pinInput(0)">0</button>
+          <button class="pin-key pin-key-del" onclick="pinDelete()">⌫</button>
+        </div>
+        <button class="btn btn-outline" onclick="pinBack()" style="margin-top:12px">← スタッフ選択に戻る</button>
+      </div>
     </div>
-    <p class="login-note">※ 本番ではGoogle認証 + PIN/生体認証になります</p>
+    <p class="login-note">4桁のPINコードでログインします</p>
   </div>
 </div>
 
@@ -368,6 +395,11 @@
         <span class="mypage-menu-text">メンバー情報</span>
         <span class="mypage-menu-arrow">→</span>
       </div>
+      <div class="mypage-menu-item" onclick="showChangePinModal()">
+        <span class="mypage-menu-icon">🔑</span>
+        <span class="mypage-menu-text">PINコード変更</span>
+        <span class="mypage-menu-arrow">→</span>
+      </div>
       <div class="mypage-menu-item" onclick="showHelp()">
         <span class="mypage-menu-icon">❓</span>
         <span class="mypage-menu-text">ヘルプ</span>
@@ -516,6 +548,37 @@
       <div id="receiptOcrResult"></div>
     </div>
     <button class="btn btn-gold" onclick="processReceipt()" id="receiptSubmitBtn" style="display:none">この内容で登録</button>
+  </div>
+</div>
+
+<!-- ========== PIN変更モーダル ========== -->
+<div id="changePinModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔑 PINコード変更</h3>
+      <button class="modal-close" onclick="closeModal('changePinModal')">&times;</button>
+    </div>
+    <p id="changePinPrompt" style="text-align:center; font-size:14px; color:var(--sub); margin-bottom:16px;">新しい4桁PINを入力</p>
+    <div class="pin-display" id="changePinDisplay">
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+      <span class="pin-dot"></span>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="changePinInput(1)">1</button>
+      <button class="pin-key" onclick="changePinInput(2)">2</button>
+      <button class="pin-key" onclick="changePinInput(3)">3</button>
+      <button class="pin-key" onclick="changePinInput(4)">4</button>
+      <button class="pin-key" onclick="changePinInput(5)">5</button>
+      <button class="pin-key" onclick="changePinInput(6)">6</button>
+      <button class="pin-key" onclick="changePinInput(7)">7</button>
+      <button class="pin-key" onclick="changePinInput(8)">8</button>
+      <button class="pin-key" onclick="changePinInput(9)">9</button>
+      <button class="pin-key pin-key-empty"></button>
+      <button class="pin-key" onclick="changePinInput(0)">0</button>
+      <button class="pin-key pin-key-del" onclick="changePinDelete()">⌫</button>
+    </div>
   </div>
 </div>
 

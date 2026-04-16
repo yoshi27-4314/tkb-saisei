@@ -568,3 +568,33 @@ body {
 .expense-card-name { font-size: 14px; font-weight: 500; }
 .expense-card-meta { font-size: 12px; color: var(--sub); margin-top: 2px; }
 .expense-card-amount { font-size: 16px; font-weight: 700; color: var(--gold); }
+
+/* ====== PIN PAD ====== */
+.pin-display {
+  display: flex; gap: 16px; justify-content: center; margin-bottom: 24px;
+}
+.pin-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--gold); background: transparent;
+  transition: background 0.15s;
+}
+.pin-dot.filled { background: var(--gold); }
+.pin-pad {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  max-width: 280px; margin: 0 auto;
+}
+.pin-key {
+  width: 100%; aspect-ratio: 1.6; border-radius: 12px; border: 2px solid var(--border);
+  background: var(--card); font-size: 24px; font-weight: 700; color: var(--text);
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.pin-key:active { background: #faf3e0; border-color: var(--gold); }
+.pin-key-empty { border: none; background: transparent; cursor: default; }
+.pin-key-del { font-size: 20px; color: var(--sub); }
+.pin-error { animation: shake 0.4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}

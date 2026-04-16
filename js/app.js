@@ -12,6 +12,18 @@ const STORAGE_KEY = 'f8_saisei_data';
 const LOGIN_KEY = 'f8_saisei_user';
 const ATTEND_KEY = 'f8_saisei_attend';
 const PROXY_ATTEND_KEY = 'f8_saisei_proxy_attend';
+const PIN_KEY = 'f8_saisei_pin';
+
+// PIN状態
+let pinBuffer = [];
+let pinMode = ''; // 'login', 'setup', 'confirm_setup'
+let pinSetupFirst = '';
+let selectedStaffName = '';
+
+// PIN変更状態
+let changePinBuffer = [];
+let changePinMode = ''; // 'new', 'confirm'
+let changePinFirst = '';
 
 // ====== データ管理（ローカル） ======
 function loadLocalData() {
@@ -40,12 +52,112 @@ function saveExpenses(expenses) {
 }
 
 // ====== ログイン ======
-function doLogin() {
-  const sel = document.getElementById('loginStaff');
-  const name = sel.value;
-  if (!name) { showToast('スタッフを選択してください'); return; }
-  currentUser = { name: name, isAdmin: name === '浅野儀頼' };
+function onStaffSelect() {
+  const name = document.getElementById('loginStaff').value;
+  if (!name) return;
+  selectedStaffName = name;
+  const savedPin = localStorage.getItem(PIN_KEY + '_' + name);
+
+  document.getElementById('loginStep1').style.display = 'none';
+  document.getElementById('loginStep2').style.display = 'block';
+
+  pinBuffer = [];
+  updatePinDots('pinDisplay');
+
+  if (savedPin) {
+    pinMode = 'login';
+    document.getElementById('pinPrompt').textContent = 'PINコードを入力してください';
+  } else {
+    pinMode = 'setup';
+    document.getElementById('pinPrompt').textContent = '4桁のPINコードを設定してください';
+  }
+}
+
+function pinInput(num) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer.push(num);
+  updatePinDots('pinDisplay');
+
+  if (pinBuffer.length === 4) {
+    setTimeout(() => processPinEntry(), 200);
+  }
+}
+
+function pinDelete() {
+  if (pinBuffer.length === 0) return;
+  pinBuffer.pop();
+  updatePinDots('pinDisplay');
+}
+
+function pinBack() {
+  document.getElementById('loginStep1').style.display = 'block';
+  document.getElementById('loginStep2').style.display = 'none';
+  pinBuffer = [];
+  pinMode = '';
+  selectedStaffName = '';
+}
+
+function updatePinDots(displayId) {
+  const dots = document.getElementById(displayId).querySelectorAll('.pin-dot');
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('filled', i < pinBuffer.length);
+  });
+}
+
+function processPinEntry() {
+  const entered = pinBuffer.join('');
+
+  if (pinMode === 'setup') {
+    pinSetupFirst = entered;
+    pinMode = 'confirm_setup';
+    pinBuffer = [];
+    updatePinDots('pinDisplay');
+    document.getElementById('pinPrompt').textContent = '確認のためもう一度入力してください';
+    return;
+  }
+
+  if (pinMode === 'confirm_setup') {
+    if (entered === pinSetupFirst) {
+      localStorage.setItem(PIN_KEY + '_' + selectedStaffName, entered);
+      showToast('PINコードを設定しました');
+      doLoginWithPin();
+    } else {
+      pinError('pinDisplay');
+      document.getElementById('pinPrompt').textContent = 'PINが一致しません。もう一度設定してください';
+      pinMode = 'setup';
+      pinSetupFirst = '';
+    }
+    return;
+  }
+
+  if (pinMode === 'login') {
+    const savedPin = localStorage.getItem(PIN_KEY + '_' + selectedStaffName);
+    if (entered === savedPin) {
+      doLoginWithPin();
+    } else {
+      pinError('pinDisplay');
+      document.getElementById('pinPrompt').textContent = 'PINが違います。もう一度入力してください';
+    }
+    return;
+  }
+}
+
+function pinError(displayId) {
+  const display = document.getElementById(displayId);
+  display.classList.add('pin-error');
+  setTimeout(() => {
+    display.classList.remove('pin-error');
+    pinBuffer = [];
+    updatePinDots(displayId);
+  }, 400);
+}
+
+function doLoginWithPin() {
+  currentUser = { name: selectedStaffName, isAdmin: selectedStaffName === '浅野儀頼' };
   localStorage.setItem(LOGIN_KEY, JSON.stringify(currentUser));
+  pinBuffer = [];
+  pinMode = '';
+  selectedStaffName = '';
   showMainScreen();
 }
 
@@ -1073,6 +1185,72 @@ function escapeHtml(str) {
 }
 
 function showHelp() { showToast('ヘルプ画面（実装予定）'); }
+
+// ====== PIN変更 ======
+function showChangePinModal() {
+  closeModal('mypageModal');
+  changePinBuffer = [];
+  changePinMode = 'new';
+  changePinFirst = '';
+  document.getElementById('changePinPrompt').textContent = '新しい4桁PINを入力';
+  updateChangePinDots();
+  document.getElementById('changePinModal').classList.add('open');
+}
+
+function changePinInput(num) {
+  if (changePinBuffer.length >= 4) return;
+  changePinBuffer.push(num);
+  updateChangePinDots();
+
+  if (changePinBuffer.length === 4) {
+    setTimeout(() => processChangePinEntry(), 200);
+  }
+}
+
+function changePinDelete() {
+  if (changePinBuffer.length === 0) return;
+  changePinBuffer.pop();
+  updateChangePinDots();
+}
+
+function updateChangePinDots() {
+  const dots = document.getElementById('changePinDisplay').querySelectorAll('.pin-dot');
+  dots.forEach((dot, i) => {
+    dot.classList.toggle('filled', i < changePinBuffer.length);
+  });
+}
+
+function processChangePinEntry() {
+  const entered = changePinBuffer.join('');
+
+  if (changePinMode === 'new') {
+    changePinFirst = entered;
+    changePinMode = 'confirm';
+    changePinBuffer = [];
+    updateChangePinDots();
+    document.getElementById('changePinPrompt').textContent = '確認のためもう一度入力';
+    return;
+  }
+
+  if (changePinMode === 'confirm') {
+    if (entered === changePinFirst) {
+      localStorage.setItem(PIN_KEY + '_' + currentUser.name, entered);
+      closeModal('changePinModal');
+      showToast('PINコードを変更しました');
+    } else {
+      const display = document.getElementById('changePinDisplay');
+      display.classList.add('pin-error');
+      setTimeout(() => {
+        display.classList.remove('pin-error');
+        changePinBuffer = [];
+        updateChangePinDots();
+        changePinMode = 'new';
+        changePinFirst = '';
+        document.getElementById('changePinPrompt').textContent = 'PINが一致しません。もう一度入力';
+      }, 400);
+    }
+  }
+}
 
 // ====== 初期化 ======
 window.addEventListener('DOMContentLoaded', () => {
