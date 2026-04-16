@@ -1258,3 +1258,16 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loginScreen').classList.add('active');
   }
 });
+
+// ===== 他タブからのlocalStorage変更を検知（エグゼクティブダッシュボードからの代理連絡等） =====
+window.addEventListener('storage', (e) => {
+  if (e.key === 'f8_leave_requests') {
+    // 休み連絡が他タブで変更された場合、お知らせを更新
+    if (typeof renderHomeNotices === 'function') renderHomeNotices();
+  }
+  if (e.key && e.key.startsWith('tkb_saisei_attend_')) {
+    // 勤怠が他タブで変更された場合
+    if (typeof checkTodayAttendance === 'function') checkTodayAttendance();
+    if (typeof checkProxyAttendance === 'function') checkProxyAttendance();
+  }
+});
