@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<title>テイクバック 再生事業部</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1C2541">
+<link rel="stylesheet" href="css/style.css?v=20260417">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- ========== ログイン画面 ========== -->
+<div id="loginScreen" class="screen active">
+  <div class="login-container">
+    <div class="login-logo">
+      <div class="login-icon">TKB</div>
+      <h1>テイクバック</h1>
+      <p class="login-sub">再生事業部</p>
+    </div>
+    <div class="login-form">
+      <div class="form-group">
+        <label>スタッフ名</label>
+        <select id="loginStaff">
+          <option value="">選択してください</option>
+          <option value="平野光雄">平野光雄</option>
+          <option value="松本豊彦">松本豊彦</option>
+          <option value="三島圭織">三島圭織</option>
+          <option value="浅野儀頼">浅野儀頼（管理者）</option>
+        </select>
+      </div>
+      <button class="btn btn-gold" onclick="doLogin()">ログイン</button>
+    </div>
+    <p class="login-note">※ 本番ではGoogle認証 + PIN/生体認証になります</p>
+  </div>
+</div>
+
+<!-- ========== メイン画面 ========== -->
+<div id="mainScreen" class="screen">
+
+  <!-- ヘッダー -->
+  <header class="header">
+    <div class="header-left">
+      <span class="header-logo">F8</span>
+      <span class="header-title">テイクバック 再生</span>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" onclick="showNotifications()">
+        <span class="notif-icon">🔔</span>
+        <span id="notifBadge" class="notif-badge" style="display:none">0</span>
+      </button>
+      <button class="header-home-btn" onclick="showHomeModal()">🏠</button>
+      <button class="header-mypage-btn" onclick="showMypageModal()">
+        <span class="mypage-avatar-sm">👤</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- タブコンテンツ -->
+  <main class="content">
+
+    <!-- ========== ガイドタブ ========== -->
+    <div id="tab-guide" class="tab-content">
+      <div class="section" id="guideMenuSection">
+        <h3 class="section-title">📖 ガイド</h3>
+        <div class="menu-list">
+          <div class="menu-item" onclick="showGuide('manual')">
+            <span class="menu-icon">📋</span>
+            <span class="menu-text">作業マニュアル</span>
+            <span class="menu-arrow">→</span>
+          </div>
+          <div class="menu-item" onclick="showGuide('safety')">
+            <span class="menu-icon">⚠️</span>
+            <span class="menu-text">安全管理ルール</span>
+            <span class="menu-arrow">→</span>
+          </div>
+          <div class="menu-item" onclick="showGuide('customer')">
+            <span class="menu-icon">🤝</span>
+            <span class="menu-text">お客さん対応ガイド</span>
+            <span class="menu-arrow">→</span>
+          </div>
+          <div class="menu-item" onclick="showGuide('disposal')">
+            <span class="menu-icon">♻️</span>
+            <span class="menu-text">分別・処分ガイド</span>
+            <span class="menu-arrow">→</span>
+          </div>
+          <div class="menu-item" onclick="showGuide('app')">
+            <span class="menu-icon">📱</span>
+            <span class="menu-text">アプリの使い方</span>
+            <span class="menu-arrow">→</span>
+          </div>
+        </div>
+      </div>
+      <div id="guideContent" style="display:none">
+        <button class="btn btn-outline" onclick="closeGuide()" style="margin-bottom:12px">← 戻る</button>
+        <div id="guideBody"></div>
+      </div>
+    </div>
+
+    <!-- ========== ツールタブ ========== -->
+    <div id="tab-tools" class="tab-content">
+      <div class="section" id="toolsMenuSection">
+        <h3 class="section-title">🧰 ツール</h3>
+        <div class="menu-list">
+          <div class="menu-item" onclick="showAddressBook()">
+            <span class="menu-icon">📍</span>
+            <span class="menu-text">取引先住所録</span>
+            <span class="menu-arrow">→</span>
+          </div>
+          <div class="menu-item" onclick="showPhoneBook()">
+            <span class="menu-icon">📞</span>
+            <span class="menu-text">連絡先一覧</span>
+            <span class="menu-arrow">→</span>
+          </div>
+          <div class="menu-item" onclick="showAiChat()">
+            <span class="menu-icon">🤖</span>
+            <span class="menu-text">AI相談</span>
+            <span class="menu-arrow">→</span>
+          </div>
+          <div class="menu-item" onclick="showReportGen()">
+            <span class="menu-icon">📄</span>
+            <span class="menu-text">報告書作成</span>
+            <span class="menu-arrow">→</span>
+          </div>
+        </div>
+      </div>
+      <div id="toolContent" style="display:none">
+        <button class="btn btn-outline" onclick="closeTool()" style="margin-bottom:12px">← 戻る</button>
+        <div id="toolBody"></div>
+      </div>
+    </div>
+
+    <!-- ========== 今日の現場タブ ========== -->
+    <div id="tab-genba" class="tab-content active">
+      <div id="genbaSelectScreen">
+        <div class="section">
+          <h3 class="section-title">🔨 今日の現場</h3>
+          <div id="todayGenbaList">
+            <p class="empty-msg">今日の現場予定はありません</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="genbaWorkScreen" style="display:none">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+          <button class="icon-btn" onclick="backToGenbaSelect()" style="font-size:24px">←</button>
+          <h3 id="genbaCaseTitle" style="font-size:16px; font-weight:700; flex:1"></h3>
+        </div>
+
+        <!-- Googleマップボタン -->
+        <div class="genba-card">
+          <button class="btn btn-primary" id="genbaMapBtn" onclick="openMap()" style="display:flex; align-items:center; justify-content:center; gap:8px;">
+            📍 Googleマップでナビ開始
+          </button>
+        </div>
+
+        <!-- 役割分担 -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">👥</span> 役割分担</div>
+          <div id="roleAssignList"></div>
+        </div>
+
+        <!-- お客さんの要望・注意事項 -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">📝</span> お客さんの要望・注意事項</div>
+          <textarea class="form-textarea" id="customerMemo" placeholder="お客さんの要望や注意事項を入力..." oninput="saveCustomerMemo()"></textarea>
+        </div>
+
+        <!-- 使用道具・持ち物リスト -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">🔧</span> 使用道具・持ち物</div>
+          <div id="toolsList"></div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" class="form-input" id="newToolInput" placeholder="道具名を入力..." style="flex:1">
+            <button class="btn btn-outline btn-sm" onclick="addTool()">追加</button>
+          </div>
+        </div>
+
+        <!-- 写真撮影（ステップ別） -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">📷</span> 現場写真</div>
+          <div id="photoSteps"></div>
+        </div>
+
+        <!-- チェック事項 -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">☑️</span> チェック事項</div>
+          <ul class="checklist" id="genbaChecklist"></ul>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" class="form-input" id="newCheckInput" placeholder="チェック項目を追加..." style="flex:1">
+            <button class="btn btn-outline btn-sm" onclick="addCheckItem()">追加</button>
+          </div>
+        </div>
+
+        <!-- 作業時間 -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">⏱️</span> 作業時間</div>
+          <div id="timeTrackers"></div>
+        </div>
+
+        <!-- 経費入力 -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">🧾</span> 経費入力</div>
+          <div id="genbaExpenseList"></div>
+          <button class="btn btn-outline" onclick="addGenbaExpense()" style="margin-top:8px">+ 経費を追加</button>
+        </div>
+
+        <!-- 回収動産 -->
+        <div class="genba-card">
+          <div class="genba-card-title"><span class="genba-card-icon">📦</span> 回収動産</div>
+          <div id="disposalList"></div>
+          <button class="btn btn-outline" onclick="showAddDisposalModal()" style="margin-top:8px">+ 動産を追加</button>
+        </div>
+
+        <!-- 完了報告 -->
+        <div class="genba-card" style="border-left-color: #C5A258;">
+          <div class="genba-card-title"><span class="genba-card-icon">✅</span> 完了報告</div>
+          <div id="completeReportSummary"></div>
+          <button class="btn btn-gold" onclick="completeGenba()" style="margin-top:12px">✅ 作業完了・報告送信</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 経費タブ ========== -->
+    <div id="tab-expense" class="tab-content">
+      <div class="section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 class="section-title" style="margin-bottom:0">🧾 経費</h3>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <button class="btn btn-gold btn-sm" onclick="showReceiptCapture()">📷 レシート撮影</button>
+          <button class="btn btn-outline btn-sm" onclick="showExpenseForm()">✏️ 手入力</button>
+        </div>
+        <div id="expenseFilterRow" class="status-filter" style="margin-bottom:12px;">
+          <button class="filter-btn active" onclick="filterExpenses('all')">すべて</button>
+        </div>
+        <div class="card-list" id="expenseList">
+          <p class="empty-msg">経費の記録はありません</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 案件タブ ========== -->
+    <div id="tab-case" class="tab-content">
+      <div class="section">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 class="section-title" style="margin-bottom:0">📋 案件一覧</h3>
+          <button class="btn btn-gold btn-sm" onclick="showNewCaseModal()">+ 新規</button>
+        </div>
+        <div class="status-filter" id="caseFilter">
+          <button class="filter-btn active" onclick="filterCases('all')">すべて</button>
+          <button class="filter-btn" onclick="filterCases('received')">受付</button>
+          <button class="filter-btn" onclick="filterCases('survey')">現地調査</button>
+          <button class="filter-btn" onclick="filterCases('estimating')">見積もり中</button>
+          <button class="filter-btn" onclick="filterCases('confirmed')">確定</button>
+          <button class="filter-btn" onclick="filterCases('working')">作業中</button>
+          <button class="filter-btn" onclick="filterCases('completed')">完了</button>
+          <button class="filter-btn" onclick="filterCases('settled')">精算済</button>
+        </div>
+        <div class="search-bar">
+          <input type="text" class="search-input" id="caseSearch" placeholder="案件名・住所で検索..." oninput="searchCases()">
+        </div>
+        <div class="card-list" id="caseList">
+          <p class="empty-msg">案件がありません。「+ 新規」から追加してください。</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ボトムナビ -->
+  <nav class="bottom-nav">
+    <button class="nav-item" onclick="switchTab('guide')">
+      <span class="nav-icon">📖</span>
+      <span class="nav-label">ガイド</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('tools')">
+      <span class="nav-icon">🧰</span>
+      <span class="nav-label">ツール</span>
+    </button>
+    <button class="nav-item active" onclick="switchTab('genba')">
+      <span class="nav-icon">🔨</span>
+      <span class="nav-label">今日の現場</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('expense')">
+      <span class="nav-icon">🧾</span>
+      <span class="nav-label">経費</span>
+    </button>
+    <button class="nav-item" onclick="switchTab('case')">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">案件</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ========== ホームモーダル ========== -->
+<div id="homeModal" class="modal-overlay">
+  <div class="modal" style="border-radius:20px 20px 0 0; max-height:90vh;">
+    <div class="modal-header">
+      <h3>🏠 ホーム</h3>
+      <button class="modal-close" onclick="closeModal('homeModal')">&times;</button>
+    </div>
+    <div class="greeting">
+      <h2>おはようございます、<span id="homeStaffName">---</span>さん</h2>
+      <p class="greeting-date" id="homeTodayDate"></p>
+    </div>
+    <div class="section">
+      <div id="weatherInfo" class="weather-card">
+        <span class="weather-icon">☀️</span>
+        <span class="weather-text">天気情報を取得中...</span>
+      </div>
+    </div>
+    <div class="section">
+      <h3 class="section-title">🔨 今日の現場</h3>
+      <div id="homeTodayGenba"></div>
+    </div>
+    <div class="section">
+      <h3 class="section-title">📅 明日の予定</h3>
+      <div id="homeTomorrowGenba"></div>
+    </div>
+    <div class="section">
+      <h3 class="section-title">📋 お知らせ</h3>
+      <div id="homeNoticeList"></div>
+    </div>
+    <div class="section">
+      <h3 class="section-title">💬 チャット</h3>
+      <div class="chat-quick-btns" id="chatQuickBtns"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== マイページモーダル ========== -->
+<div id="mypageModal" class="modal-overlay">
+  <div class="modal" style="border-radius:20px 20px 0 0;">
+    <div class="modal-header">
+      <h3>👤 マイページ</h3>
+      <button class="modal-close" onclick="closeModal('mypageModal')">&times;</button>
+    </div>
+    <div class="mypage-header">
+      <div class="mypage-avatar" id="mypageAvatar">👤</div>
+      <h3 id="mypageName">---</h3>
+      <p class="mypage-role" id="mypageRole">スタッフ</p>
+    </div>
+    <div class="attendance-card" id="mypageAttendCard">
+      <div class="genba-card-title"><span class="genba-card-icon">🕐</span> 出退勤</div>
+      <div class="attendance-row">
+        <button class="btn btn-primary" onclick="recordAttendance('in')" style="flex:1">出勤</button>
+        <button class="btn btn-warn" onclick="recordAttendance('out')" style="flex:1">退勤</button>
+      </div>
+      <p class="attendance-msg" id="attendanceMsg"></p>
+    </div>
+    <div id="proxyAttendanceSection" style="display:none">
+      <div class="attendance-card">
+        <div class="genba-card-title"><span class="genba-card-icon">👥</span> 北瀬さんの勤怠（代理入力）</div>
+        <div class="attendance-row">
+          <button class="btn btn-primary" onclick="recordProxyAttendance('in')" style="flex:1">出勤</button>
+          <button class="btn btn-warn" onclick="recordProxyAttendance('out')" style="flex:1">退勤</button>
+        </div>
+        <p class="attendance-msg" id="proxyAttendanceMsg"></p>
+      </div>
+    </div>
+    <div class="mypage-menu">
+      <div class="mypage-menu-item" onclick="showMemberInfo()">
+        <span class="mypage-menu-icon">👥</span>
+        <span class="mypage-menu-text">メンバー情報</span>
+        <span class="mypage-menu-arrow">→</span>
+      </div>
+      <div class="mypage-menu-item" onclick="showHelp()">
+        <span class="mypage-menu-icon">❓</span>
+        <span class="mypage-menu-text">ヘルプ</span>
+        <span class="mypage-menu-arrow">→</span>
+      </div>
+      <div class="mypage-menu-item" onclick="doLogout()" style="color:var(--danger)">
+        <span class="mypage-menu-icon">🚪</span>
+        <span class="mypage-menu-text" style="color:var(--danger)">ログアウト</span>
+        <span class="mypage-menu-arrow">→</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 新規案件モーダル ========== -->
+<div id="newCaseModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📋 新規案件</h3>
+      <button class="modal-close" onclick="closeModal('newCaseModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>お客さん名</label>
+      <input type="text" class="form-input" id="caseCustomerName" placeholder="山田 太郎">
+    </div>
+    <div class="form-group">
+      <label>電話番号</label>
+      <input type="tel" class="form-input" id="caseCustomerPhone" placeholder="090-1234-5678">
+    </div>
+    <div class="form-group">
+      <label>現場住所</label>
+      <input type="text" class="form-input" id="caseAddress" placeholder="岐阜市...">
+    </div>
+    <div class="form-group">
+      <label>作業内容</label>
+      <select class="form-select" id="caseWorkType">
+        <option value="">選択してください</option>
+        <option value="katazuke">片付け</option>
+        <option value="fuyouhin">不用品回収</option>
+        <option value="ihin">遺品整理</option>
+        <option value="zanchi">残置物撤去</option>
+        <option value="satei">査定買取</option>
+        <option value="muryou">無料回収</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>お客さんの要望・備考</label>
+      <textarea class="form-textarea" id="caseNote" placeholder="ご要望やお客さんからの伝達事項..."></textarea>
+    </div>
+    <div class="form-group">
+      <label>作業予定日</label>
+      <input type="date" class="form-input" id="caseDate">
+    </div>
+    <button class="btn btn-gold" onclick="createCase()">案件を登録</button>
+  </div>
+</div>
+
+<!-- ========== 動産追加モーダル ========== -->
+<div id="addDisposalModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📦 動産登録</h3>
+      <button class="modal-close" onclick="closeModal('addDisposalModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>品名</label>
+      <input type="text" class="form-input" id="disposalItemName" placeholder="テレビ、冷蔵庫、タンス等...">
+    </div>
+    <div class="form-group">
+      <label>数量</label>
+      <input type="number" class="form-input" id="disposalItemQty" value="1" min="1">
+    </div>
+    <div class="form-group">
+      <label>処分先</label>
+      <select class="form-select" id="disposalItemType">
+        <option value="">選択してください</option>
+        <option value="ryutsu">📦 流通事業へ引き渡し</option>
+        <option value="boueki">🌍 貿易業者（ロット販売）</option>
+        <option value="scrap">♻️ スクラップ</option>
+        <option value="muryou">🆓 無料廃棄</option>
+        <option value="sanpai">🏭 産業廃棄物</option>
+        <option value="sodai">🏛️ 自治体 粗大ごみ</option>
+        <option value="kanen">🔥 可燃ごみ</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>状態メモ</label>
+      <textarea class="form-textarea" id="disposalItemMemo" placeholder="状態や特記事項..."></textarea>
+    </div>
+    <button class="btn btn-gold" onclick="addDisposalItem()">登録</button>
+  </div>
+</div>
+
+<!-- ========== 経費手入力モーダル ========== -->
+<div id="expenseFormModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🧾 経費入力</h3>
+      <button class="modal-close" onclick="closeModal('expenseFormModal')">&times;</button>
+    </div>
+    <div class="form-group">
+      <label>案件（任意）</label>
+      <select class="form-select" id="expenseCaseSelect">
+        <option value="">案件を選択...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>カテゴリ</label>
+      <select class="form-select" id="expenseCategory">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>項目名</label>
+      <input type="text" class="form-input" id="expenseItemName" placeholder="例: ガソリン代">
+    </div>
+    <div class="form-group">
+      <label>金額</label>
+      <input type="number" class="form-input" id="expenseAmount" placeholder="0">
+    </div>
+    <div class="form-group">
+      <label>日付</label>
+      <input type="date" class="form-input" id="expenseDate">
+    </div>
+    <div class="form-group">
+      <label>メモ</label>
+      <textarea class="form-textarea" id="expenseMemo" placeholder="メモ（任意）"></textarea>
+    </div>
+    <button class="btn btn-gold" onclick="saveExpense()">登録</button>
+  </div>
+</div>
+
+<!-- ========== レシート撮影モーダル ========== -->
+<div id="receiptModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📷 レシート撮影</h3>
+      <button class="modal-close" onclick="closeModal('receiptModal')">&times;</button>
+    </div>
+    <div class="photo-slot" onclick="captureReceipt()" style="height:200px; margin-bottom:16px;">
+      <span class="photo-icon">📷</span>
+      <span>タップしてレシートを撮影</span>
+    </div>
+    <div id="receiptPreview" style="display:none">
+      <img id="receiptImage" style="width:100%; border-radius:10px; margin-bottom:12px;">
+      <div id="receiptOcrResult"></div>
+    </div>
+    <button class="btn btn-gold" onclick="processReceipt()" id="receiptSubmitBtn" style="display:none">この内容で登録</button>
+  </div>
+</div>
+
+<!-- ========== 通知モーダル ========== -->
+<div id="notifModal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🔔 お知らせ</h3>
+      <button class="modal-close" onclick="closeModal('notifModal')">&times;</button>
+    </div>
+    <div id="notifContent">
+      <p class="empty-msg">お知らせはありません</p>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

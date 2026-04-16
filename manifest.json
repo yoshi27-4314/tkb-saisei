@@ -1,0 +1,9 @@
+{
+  "name": "テイクバック 再生事業部",
+  "short_name": "TKB再生",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#F8F5EE",
+  "theme_color": "#1C2541",
+  "icons": []
+}
