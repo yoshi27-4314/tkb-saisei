@@ -56,7 +56,7 @@ const CONFIG = {
     { name: '平野光雄', role: 'staff', login: true, attendance: true, phone: '', bloodType: '', birthday: '', emergencyContact: '' },
     { name: '松本豊彦', role: 'staff', login: true, attendance: true, phone: '', bloodType: '', birthday: '', emergencyContact: '' },
     { name: '北瀬孝', role: 'staff', login: false, attendance: 'proxy', phone: '', bloodType: '', birthday: '', emergencyContact: '' },
-    { name: '三島圭織', role: 'staff', login: true, attendance: false, phone: '', bloodType: '', birthday: '', emergencyContact: '' },
+    { name: '三島圭織', role: 'staff', login: false, attendance: false, phone: '', bloodType: '', birthday: '', emergencyContact: '' },
   ],
 
   // 経費カテゴリ
