@@ -372,20 +372,81 @@
     </div>
     <div class="attendance-card" id="mypageAttendCard">
       <div class="genba-card-title"><span class="genba-card-icon">🕐</span> 出退勤</div>
-      <div class="attendance-row">
-        <button class="btn btn-primary" onclick="recordAttendance('in')" style="flex:1">出勤</button>
-        <button class="btn btn-warn" onclick="recordAttendance('out')" style="flex:1">退勤</button>
+      <p id="attendanceMsg" class="attendance-msg">本日の勤務を記録してください</p>
+      <div id="attendanceFormArea">
+        <div class="attendance-row">
+          <div class="form-group" style="flex:1">
+            <label>出勤</label>
+            <div class="time-input" id="attendStartDisplay" onclick="openClockPicker('start')">09:00</div>
+            <input type="hidden" id="attendStart" value="09:00">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>退勤</label>
+            <div class="time-input" id="attendEndDisplay" onclick="openClockPicker('end')">18:00</div>
+            <input type="hidden" id="attendEnd" value="18:00">
+          </div>
+        </div>
+        <div class="attendance-row" style="margin-top:8px">
+          <div class="form-group" style="flex:1">
+            <label>休憩開始</label>
+            <div class="time-input" id="breakStartDisplay" onclick="openClockPicker('breakStart')">12:00</div>
+            <input type="hidden" id="breakStart" value="12:00">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>休憩終了</label>
+            <div class="time-input" id="breakEndDisplay" onclick="openClockPicker('breakEnd')">13:00</div>
+            <input type="hidden" id="breakEnd" value="13:00">
+          </div>
+          <div class="form-group" style="flex:0 0 auto; align-self:flex-end;">
+            <label class="no-break-label">
+              <input type="checkbox" id="noBreakCheck" onchange="toggleNoBreak()">
+              <span style="font-size:12px">休憩なし</span>
+            </label>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="submitAttendance()" style="margin-top:12px">📝 勤務記録を送信</button>
+        <button class="btn btn-outline" onclick="toggleAttendanceHistory()" style="font-size:13px; margin-top:8px" id="attendHistoryBtn">📅 今月の出勤状況を見る</button>
+        <div id="attendanceHistory" style="display:none"></div>
       </div>
-      <p class="attendance-msg" id="attendanceMsg"></p>
     </div>
+    <!-- 管理者のみ: 北瀬さん勤怠代理入力 -->
     <div id="proxyAttendanceSection" style="display:none">
       <div class="attendance-card">
         <div class="genba-card-title"><span class="genba-card-icon">👥</span> 北瀬さんの勤怠（代理入力）</div>
-        <div class="attendance-row">
-          <button class="btn btn-primary" onclick="recordProxyAttendance('in')" style="flex:1">出勤</button>
-          <button class="btn btn-warn" onclick="recordProxyAttendance('out')" style="flex:1">退勤</button>
+        <p id="proxyAttendanceMsg" class="attendance-msg">本日の勤務を記録してください</p>
+        <div id="proxyAttendanceFormArea">
+          <div class="attendance-row">
+            <div class="form-group" style="flex:1">
+              <label>出勤</label>
+              <div class="time-input" id="proxyStartDisplay" onclick="openClockPicker('proxyStart')">09:00</div>
+              <input type="hidden" id="proxyStart" value="09:00">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>退勤</label>
+              <div class="time-input" id="proxyEndDisplay" onclick="openClockPicker('proxyEnd')">18:00</div>
+              <input type="hidden" id="proxyEnd" value="18:00">
+            </div>
+          </div>
+          <div class="attendance-row" style="margin-top:8px">
+            <div class="form-group" style="flex:1">
+              <label>休憩開始</label>
+              <div class="time-input" id="proxyBreakStartDisplay" onclick="openClockPicker('proxyBreakStart')">12:00</div>
+              <input type="hidden" id="proxyBreakStart" value="12:00">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>休憩終了</label>
+              <div class="time-input" id="proxyBreakEndDisplay" onclick="openClockPicker('proxyBreakEnd')">13:00</div>
+              <input type="hidden" id="proxyBreakEnd" value="13:00">
+            </div>
+            <div class="form-group" style="flex:0 0 auto; align-self:flex-end;">
+              <label class="no-break-label">
+                <input type="checkbox" id="proxyNoBreakCheck" onchange="toggleProxyNoBreak()">
+                <span style="font-size:12px">休憩なし</span>
+              </label>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="submitProxyAttendance()" style="margin-top:12px">📝 北瀬さんの勤務記録を送信</button>
         </div>
-        <p class="attendance-msg" id="proxyAttendanceMsg"></p>
       </div>
     </div>
     <div class="mypage-menu">
@@ -547,6 +608,30 @@
       <div id="receiptOcrResult"></div>
     </div>
     <button class="btn btn-gold" onclick="processReceipt()" id="receiptSubmitBtn" style="display:none">この内容で登録</button>
+  </div>
+</div>
+
+<!-- ========== 時計ピッカーモーダル ========== -->
+<div id="clockPickerOverlay" class="modal-overlay" onclick="closeClockPicker()">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:340px">
+    <div class="modal-header">
+      <h3 id="clockPickerTitle" style="color:var(--text)">時刻を選択</h3>
+      <button class="modal-close" onclick="closeClockPicker()">✕</button>
+    </div>
+    <div style="text-align:center">
+      <div class="clock-display" id="clockPickerDisplay">09:00</div>
+      <div class="clock-face-container">
+        <canvas id="clockPickerCanvas" width="260" height="260"></canvas>
+      </div>
+      <div class="clock-mode-toggle">
+        <button class="clock-mode-btn active" id="clockModeHour" onclick="setClockMode('hour')">時</button>
+        <button class="clock-mode-btn" id="clockModeMin" onclick="setClockMode('min')">分</button>
+      </div>
+      <div style="display:flex; gap:12px; margin-top:16px;">
+        <button class="btn btn-outline" onclick="closeClockPicker()" style="flex:1">キャンセル</button>
+        <button class="btn btn-primary" onclick="applyClockPicker()" style="flex:1">決定</button>
+      </div>
+    </div>
   </div>
 </div>
 

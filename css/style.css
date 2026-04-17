@@ -569,6 +569,67 @@ body {
 .expense-card-meta { font-size: 12px; color: var(--sub); margin-top: 2px; }
 .expense-card-amount { font-size: 16px; font-weight: 700; color: var(--gold); }
 
+/* ====== TIME INPUT & CLOCK PICKER ====== */
+.time-input {
+  width: 100%; padding: 12px 14px; border-radius: 10px; border: 2px solid var(--border);
+  font-size: 20px; font-weight: 700; color: var(--gold); text-align: center;
+  background: var(--card); cursor: pointer; font-family: inherit;
+}
+.time-input:active { border-color: var(--gold); }
+.clock-display { font-size: 40px; font-weight: 700; color: var(--gold); margin-bottom: 12px; letter-spacing: 2px; }
+.clock-face-container { display: flex; justify-content: center; }
+.clock-mode-toggle { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+.clock-mode-btn {
+  padding: 8px 24px; border-radius: 8px; border: 2px solid var(--border);
+  background: transparent; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit; color: var(--sub);
+}
+.clock-mode-btn.active { background: var(--gold); color: #fff; border-color: var(--gold); }
+.no-break-label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+/* ====== ATTENDANCE CALENDAR ====== */
+.attend-history-card {
+  background: var(--card); border-radius: 12px; padding: 16px;
+  box-shadow: 0 2px 8px var(--shadow); margin-top: 12px;
+}
+.attend-month-nav {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.attend-month-title { font-size: 16px; font-weight: 700; }
+.attend-nav-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border);
+  background: var(--card); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: var(--text);
+}
+.attend-cal-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 4px; }
+.attend-cal-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--sub); padding: 4px 0; }
+.attend-cal-dow.sun { color: var(--danger); }
+.attend-cal-dow.sat { color: #4a8ab0; }
+.attend-cal-body { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.attend-cal-cell {
+  aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; font-size: 12px;
+  background: var(--bg); position: relative;
+}
+.attend-cal-cell.empty { background: transparent; }
+.attend-cal-cell.future { opacity: 0.3; }
+.attend-cal-cell.sun .attend-cal-date { color: var(--danger); }
+.attend-cal-cell.sat .attend-cal-date { color: #4a8ab0; }
+.attend-cal-cell.off { background: var(--border); opacity: 0.5; }
+.attend-cal-cell.worked { background: #e6f4ec; }
+.attend-cal-cell.missing { background: #fde8e8; }
+.attend-cal-date { font-weight: 700; font-size: 13px; color: var(--text); }
+.attend-cal-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 2px; }
+.attend-cal-dot.worked { background: var(--accent); }
+.attend-cal-dot.missing { background: var(--danger); }
+.attend-cal-hours { font-size: 8px; color: var(--accent); font-weight: 700; margin-top: 1px; }
+.attend-summary {
+  display: flex; justify-content: space-between;
+  margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--gold);
+  font-size: 13px; color: var(--sub);
+}
+.attend-summary strong { color: var(--gold); }
+
 /* ====== PIN PAD ====== */
 .pin-display {
   display: flex; gap: 16px; justify-content: center; margin-bottom: 24px;

@@ -304,82 +304,357 @@ function showMypageModal() {
   }
 }
 
-// ====== 出退勤 ======
+// ====== 出退勤（時計ピッカー式） ======
+let clockTarget = 'start';
+let clockMode = 'hour';
+let clockHour = 9;
+let clockMin = 0;
+let attendHistoryYear = new Date().getFullYear();
+let attendHistoryMonth = new Date().getMonth();
+
 function checkTodayAttendance() {
   const today = new Date().toISOString().slice(0, 10);
-  const key = ATTEND_KEY + '_' + currentUser.name + '_' + today;
-  const record = JSON.parse(localStorage.getItem(key) || '{}');
+  const saved = localStorage.getItem(ATTEND_KEY + '_' + currentUser.name + '_' + today);
   const msg = document.getElementById('attendanceMsg');
-  if (record.in && record.out) {
-    msg.textContent = `出勤: ${record.in}  退勤: ${record.out}`;
-    msg.className = 'attendance-msg recorded';
-  } else if (record.in) {
-    msg.textContent = `出勤: ${record.in}  （勤務中）`;
-    msg.className = 'attendance-msg recorded';
+  const formArea = document.getElementById('attendanceFormArea');
+  if (saved) {
+    try {
+      const a = JSON.parse(saved);
+      const breakText = a.noBreak ? '休憩なし' : `休憩${a.breakMin}分`;
+      msg.textContent = `✅ ${a.start}〜${a.end}（${breakText}・実働${a.netHours}時間）記録済み`;
+      msg.classList.add('recorded');
+      // 入力行を隠す（履歴ボタンは残す）
+      formArea.querySelectorAll('.attendance-row').forEach(el => el.style.display = 'none');
+      const submitBtn = formArea.querySelector('[onclick="submitAttendance()"]');
+      if (submitBtn) submitBtn.style.display = 'none';
+    } catch {}
   } else {
-    msg.textContent = '本日の出退勤は未記録です';
-    msg.className = 'attendance-msg';
+    msg.textContent = '本日の勤務を記録してください';
+    msg.classList.remove('recorded');
   }
 }
 
-function recordAttendance(type) {
+function submitAttendance() {
   const today = new Date().toISOString().slice(0, 10);
-  const key = ATTEND_KEY + '_' + currentUser.name + '_' + today;
-  const record = JSON.parse(localStorage.getItem(key) || '{}');
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const saved = localStorage.getItem(ATTEND_KEY + '_' + currentUser.name + '_' + today);
+  if (saved) { showToast('本日は既に登録済みです'); return; }
 
-  if (type === 'in') {
-    if (record.in) { showToast('すでに出勤済みです'); return; }
-    record.in = timeStr;
-    showToast('出勤を記録しました: ' + timeStr);
-  } else {
-    if (!record.in) { showToast('先に出勤を記録してください'); return; }
-    if (record.out) { showToast('すでに退勤済みです'); return; }
-    record.out = timeStr;
-    showToast('退勤を記録しました: ' + timeStr);
+  const start = document.getElementById('attendStart').value;
+  const end = document.getElementById('attendEnd').value;
+  const noBreak = document.getElementById('noBreakCheck').checked;
+  const breakStart = noBreak ? null : document.getElementById('breakStart').value;
+  const breakEnd = noBreak ? null : document.getElementById('breakEnd').value;
+
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
+  let breakMin = 0;
+  if (!noBreak && breakStart && breakEnd) {
+    const [bsh, bsm] = breakStart.split(':').map(Number);
+    const [beh, bem] = breakEnd.split(':').map(Number);
+    breakMin = (beh * 60 + bem) - (bsh * 60 + bsm);
   }
-  localStorage.setItem(key, JSON.stringify(record));
+  const netMin = totalMin - breakMin;
+  const netHours = (netMin / 60).toFixed(1);
+
+  if (totalMin <= 0) { showToast('退勤時刻が出勤時刻より前です'); return; }
+
+  localStorage.setItem(ATTEND_KEY + '_' + currentUser.name + '_' + today, JSON.stringify({
+    start, end, breakStart, breakEnd, noBreak, breakMin, netHours, staffName: currentUser.name,
+  }));
+
   checkTodayAttendance();
+  showToast('🕐 勤務記録を送信しました');
+
+  // freee連携（将来実装）
+  // sendToFreee(today, start, end, noBreak, breakStart, breakEnd);
+}
+
+function toggleNoBreak() {
+  const checked = document.getElementById('noBreakCheck').checked;
+  document.getElementById('breakStartDisplay').style.opacity = checked ? '0.3' : '1';
+  document.getElementById('breakEndDisplay').style.opacity = checked ? '0.3' : '1';
 }
 
 // ====== 北瀬さん代理勤怠 ======
 function checkProxyAttendance() {
   const today = new Date().toISOString().slice(0, 10);
-  const key = PROXY_ATTEND_KEY + '_' + today;
-  const record = JSON.parse(localStorage.getItem(key) || '{}');
+  const saved = localStorage.getItem(PROXY_ATTEND_KEY + '_' + today);
   const msg = document.getElementById('proxyAttendanceMsg');
-  if (record.in && record.out) {
-    msg.textContent = `出勤: ${record.in}  退勤: ${record.out}`;
-    msg.className = 'attendance-msg recorded';
-  } else if (record.in) {
-    msg.textContent = `出勤: ${record.in}  （勤務中）`;
-    msg.className = 'attendance-msg recorded';
+  const formArea = document.getElementById('proxyAttendanceFormArea');
+  if (saved) {
+    try {
+      const a = JSON.parse(saved);
+      const breakText = a.noBreak ? '休憩なし' : `休憩${a.breakMin}分`;
+      msg.textContent = `✅ ${a.start}〜${a.end}（${breakText}・実働${a.netHours}時間）記録済み`;
+      msg.classList.add('recorded');
+      formArea.querySelectorAll('.attendance-row').forEach(el => el.style.display = 'none');
+      const submitBtn = formArea.querySelector('[onclick="submitProxyAttendance()"]');
+      if (submitBtn) submitBtn.style.display = 'none';
+    } catch {}
   } else {
-    msg.textContent = '本日の出退勤は未記録です';
-    msg.className = 'attendance-msg';
+    msg.textContent = '本日の勤務を記録してください';
+    msg.classList.remove('recorded');
   }
 }
 
-function recordProxyAttendance(type) {
+function submitProxyAttendance() {
   const today = new Date().toISOString().slice(0, 10);
-  const key = PROXY_ATTEND_KEY + '_' + today;
-  const record = JSON.parse(localStorage.getItem(key) || '{}');
-  const now = new Date();
-  const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const saved = localStorage.getItem(PROXY_ATTEND_KEY + '_' + today);
+  if (saved) { showToast('本日は既に登録済みです'); return; }
 
-  if (type === 'in') {
-    if (record.in) { showToast('すでに出勤済みです'); return; }
-    record.in = timeStr;
-    showToast('北瀬さんの出勤を記録しました: ' + timeStr);
-  } else {
-    if (!record.in) { showToast('先に出勤を記録してください'); return; }
-    if (record.out) { showToast('すでに退勤済みです'); return; }
-    record.out = timeStr;
-    showToast('北瀬さんの退勤を記録しました: ' + timeStr);
+  const start = document.getElementById('proxyStart').value;
+  const end = document.getElementById('proxyEnd').value;
+  const noBreak = document.getElementById('proxyNoBreakCheck').checked;
+  const breakStart = noBreak ? null : document.getElementById('proxyBreakStart').value;
+  const breakEnd = noBreak ? null : document.getElementById('proxyBreakEnd').value;
+
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
+  let breakMin = 0;
+  if (!noBreak && breakStart && breakEnd) {
+    const [bsh, bsm] = breakStart.split(':').map(Number);
+    const [beh, bem] = breakEnd.split(':').map(Number);
+    breakMin = (beh * 60 + bem) - (bsh * 60 + bsm);
   }
-  localStorage.setItem(key, JSON.stringify(record));
+  const netMin = totalMin - breakMin;
+  const netHours = (netMin / 60).toFixed(1);
+
+  if (totalMin <= 0) { showToast('退勤時刻が出勤時刻より前です'); return; }
+
+  localStorage.setItem(PROXY_ATTEND_KEY + '_' + today, JSON.stringify({
+    start, end, breakStart, breakEnd, noBreak, breakMin, netHours, staffName: '北瀬孝',
+  }));
+
   checkProxyAttendance();
+  showToast('🕐 北瀬さんの勤務記録を送信しました');
+}
+
+function toggleProxyNoBreak() {
+  const checked = document.getElementById('proxyNoBreakCheck').checked;
+  document.getElementById('proxyBreakStartDisplay').style.opacity = checked ? '0.3' : '1';
+  document.getElementById('proxyBreakEndDisplay').style.opacity = checked ? '0.3' : '1';
+}
+
+// ====== アナログ時計ピッカー ======
+function openClockPicker(target) {
+  clockTarget = target;
+  const inputMap = { start:'attendStart', end:'attendEnd', breakStart:'breakStart', breakEnd:'breakEnd',
+    proxyStart:'proxyStart', proxyEnd:'proxyEnd', proxyBreakStart:'proxyBreakStart', proxyBreakEnd:'proxyBreakEnd' };
+  const titleMap = { start:'出勤時刻', end:'退勤時刻', breakStart:'休憩開始', breakEnd:'休憩終了',
+    proxyStart:'出勤時刻（北瀬）', proxyEnd:'退勤時刻（北瀬）', proxyBreakStart:'休憩開始（北瀬）', proxyBreakEnd:'休憩終了（北瀬）' };
+  const current = document.getElementById(inputMap[target]).value || '09:00';
+  const [h, m] = current.split(':').map(Number);
+  clockHour = h; clockMin = m;
+  clockMode = 'hour';
+
+  document.getElementById('clockPickerTitle').textContent = titleMap[target] || '時刻を選択';
+  updateClockPickerDisplay();
+  drawClockPickerFace();
+  document.getElementById('clockModeHour').classList.add('active');
+  document.getElementById('clockModeMin').classList.remove('active');
+  document.getElementById('clockPickerOverlay').classList.add('open');
+
+  // Canvas タップイベント
+  const canvas = document.getElementById('clockPickerCanvas');
+  canvas.onclick = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    handleClockTapAt(x, y);
+  };
+}
+
+function closeClockPicker() { document.getElementById('clockPickerOverlay').classList.remove('open'); }
+
+function setClockMode(mode) {
+  clockMode = mode;
+  document.getElementById('clockModeHour').classList.toggle('active', mode === 'hour');
+  document.getElementById('clockModeMin').classList.toggle('active', mode === 'min');
+  drawClockPickerFace();
+}
+
+function updateClockPickerDisplay() {
+  document.getElementById('clockPickerDisplay').textContent =
+    String(clockHour).padStart(2, '0') + ':' + String(clockMin).padStart(2, '0');
+}
+
+function drawClockPickerFace() {
+  const canvas = document.getElementById('clockPickerCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height, cx = w/2, cy = h/2, r = 115;
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.beginPath(); ctx.arc(cx, cy, r + 10, 0, Math.PI * 2);
+  ctx.fillStyle = '#F8F5EE'; ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.strokeStyle = '#dde0e6'; ctx.lineWidth = 2; ctx.stroke();
+
+  if (clockMode === 'hour') {
+    for (let i = 1; i <= 12; i++) {
+      const a = (i * 30 - 90) * Math.PI / 180;
+      const x = cx + Math.cos(a) * (r - 25);
+      const y = cy + Math.sin(a) * (r - 25);
+      const isSelected = (clockHour % 12 === i % 12 && clockHour < 13 && clockHour > 0);
+      if (isSelected) { ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.fillStyle = '#C5A258'; ctx.fill(); }
+      ctx.font = isSelected ? 'bold 16px sans-serif' : '14px sans-serif';
+      ctx.fillStyle = isSelected ? '#fff' : '#1C2541';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(i), x, y);
+    }
+    for (let i = 13; i <= 24; i++) {
+      const a = ((i - 12) * 30 - 90) * Math.PI / 180;
+      const x = cx + Math.cos(a) * (r - 55);
+      const y = cy + Math.sin(a) * (r - 55);
+      const displayNum = i === 24 ? 0 : i;
+      const isSelected = (clockHour === displayNum || (clockHour === 0 && i === 24));
+      if (isSelected) { ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fillStyle = '#1C2541'; ctx.fill(); }
+      ctx.font = isSelected ? 'bold 13px sans-serif' : '12px sans-serif';
+      ctx.fillStyle = isSelected ? '#fff' : '#888';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(displayNum), x, y);
+    }
+  } else {
+    for (let i = 0; i < 12; i++) {
+      const minVal = i * 5;
+      const a = (i * 30 - 90) * Math.PI / 180;
+      const x = cx + Math.cos(a) * (r - 25);
+      const y = cy + Math.sin(a) * (r - 25);
+      const isSelected = (clockMin === minVal);
+      if (isSelected) { ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI * 2); ctx.fillStyle = '#C5A258'; ctx.fill(); }
+      ctx.font = isSelected ? 'bold 16px sans-serif' : '14px sans-serif';
+      ctx.fillStyle = isSelected ? '#fff' : '#1C2541';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(minVal).padStart(2, '0'), x, y);
+    }
+  }
+  ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#C5A258'; ctx.fill();
+}
+
+function handleClockTapAt(x, y) {
+  const cx = 130, cy = 130;
+  const dx = x - cx, dy = y - cy;
+  let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+  if (angle < 0) angle += 360;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (clockMode === 'hour') {
+    let h = Math.round(angle / 30);
+    if (h === 0) h = 12;
+    if (dist < 70) { h = h === 12 ? 0 : h + 12; }
+    clockHour = h;
+    updateClockPickerDisplay(); drawClockPickerFace();
+    setTimeout(() => setClockMode('min'), 300);
+  } else {
+    let m = Math.round(angle / 6);
+    if (m === 60) m = 0;
+    m = Math.round(m / 5) * 5;
+    if (m === 60) m = 0;
+    clockMin = m;
+    updateClockPickerDisplay(); drawClockPickerFace();
+  }
+}
+
+function applyClockPicker() {
+  const str = String(clockHour).padStart(2, '0') + ':' + String(clockMin).padStart(2, '0');
+  const inputMap = { start:'attendStart', end:'attendEnd', breakStart:'breakStart', breakEnd:'breakEnd',
+    proxyStart:'proxyStart', proxyEnd:'proxyEnd', proxyBreakStart:'proxyBreakStart', proxyBreakEnd:'proxyBreakEnd' };
+  const displayMap = { start:'attendStartDisplay', end:'attendEndDisplay', breakStart:'breakStartDisplay', breakEnd:'breakEndDisplay',
+    proxyStart:'proxyStartDisplay', proxyEnd:'proxyEndDisplay', proxyBreakStart:'proxyBreakStartDisplay', proxyBreakEnd:'proxyBreakEndDisplay' };
+  const inputEl = document.getElementById(inputMap[clockTarget]);
+  const displayEl = document.getElementById(displayMap[clockTarget]);
+  if (inputEl) inputEl.value = str;
+  if (displayEl) displayEl.textContent = str;
+  closeClockPicker();
+}
+
+// ====== 月間カレンダー ======
+function toggleAttendanceHistory() {
+  const el = document.getElementById('attendanceHistory');
+  if (el.style.display === 'none') {
+    el.style.display = 'block';
+    attendHistoryYear = new Date().getFullYear();
+    attendHistoryMonth = new Date().getMonth();
+    renderAttendanceHistory();
+    document.getElementById('attendHistoryBtn').textContent = '📅 閉じる';
+  } else {
+    el.style.display = 'none';
+    document.getElementById('attendHistoryBtn').textContent = '📅 今月の出勤状況を見る';
+  }
+}
+
+function changeAttendMonth(delta) {
+  attendHistoryMonth += delta;
+  if (attendHistoryMonth < 0) { attendHistoryMonth = 11; attendHistoryYear--; }
+  if (attendHistoryMonth > 11) { attendHistoryMonth = 0; attendHistoryYear++; }
+  renderAttendanceHistory();
+}
+
+function renderAttendanceHistory() {
+  const el = document.getElementById('attendanceHistory');
+  const year = attendHistoryYear, month = attendHistoryMonth;
+  const now = new Date();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDow = new Date(year, month, 1).getDay();
+  const dayLabels = ['日','月','火','水','木','金','土'];
+
+  let totalDays = 0, totalHours = 0;
+  let html = `<div class="attend-history-card">
+    <div class="attend-month-nav">
+      <button class="attend-nav-btn" onclick="changeAttendMonth(-1)">◀</button>
+      <h4 class="attend-month-title">${year}年${month + 1}月</h4>
+      <button class="attend-nav-btn" onclick="changeAttendMonth(1)">▶</button>
+    </div>
+    <div class="attend-cal-header">`;
+  for (let i = 0; i < 7; i++) {
+    const cls = i === 0 ? 'attend-cal-dow sun' : i === 6 ? 'attend-cal-dow sat' : 'attend-cal-dow';
+    html += `<div class="${cls}">${dayLabels[i]}</div>`;
+  }
+  html += `</div><div class="attend-cal-body">`;
+  for (let i = 0; i < firstDow; i++) html += `<div class="attend-cal-cell empty"></div>`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const dateStr = date.toISOString().slice(0, 10);
+    const dow = date.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const isFuture = date > now;
+    const saved = localStorage.getItem(ATTEND_KEY + '_' + currentUser.name + '_' + dateStr);
+
+    let cellClass = 'attend-cal-cell';
+    let content = `<div class="attend-cal-date">${d}</div>`;
+    let dot = '';
+
+    if (saved) {
+      try {
+        const a = JSON.parse(saved);
+        totalDays++;
+        totalHours += parseFloat(a.netHours);
+        dot = `<div class="attend-cal-dot worked"></div><div class="attend-cal-hours">${a.netHours}h</div>`;
+        cellClass += ' worked';
+      } catch {}
+    } else if (!isFuture) {
+      cellClass += isWeekend ? ' off' : ' missing';
+      if (!isWeekend) dot = `<div class="attend-cal-dot missing"></div>`;
+    } else {
+      cellClass += ' future';
+    }
+    if (dow === 0) cellClass += ' sun';
+    if (dow === 6) cellClass += ' sat';
+
+    html += `<div class="${cellClass}">${content}${dot}</div>`;
+  }
+
+  html += `</div>
+    <div class="attend-summary">
+      <span>出勤日: <strong>${totalDays}</strong>日</span>
+      <span>合計時間: <strong>${totalHours.toFixed(1)}</strong>h</span>
+    </div>
+  </div>`;
+  el.innerHTML = html;
 }
 
 // ====== 案件管理 ======
