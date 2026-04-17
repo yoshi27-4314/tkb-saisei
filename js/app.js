@@ -214,6 +214,16 @@ function switchTab(tab) {
   const idx = tabMap.indexOf(tab);
   if (idx >= 0 && navItems[idx]) navItems[idx].classList.add('active');
 
+  // ガイド・ツールのサブ画面をリセット
+  if (document.getElementById('guideContent')) {
+    document.getElementById('guideMenuSection').style.display = 'block';
+    document.getElementById('guideContent').style.display = 'none';
+  }
+  if (document.getElementById('toolContent')) {
+    document.getElementById('toolsMenuSection').style.display = 'block';
+    document.getElementById('toolContent').style.display = 'none';
+  }
+
   if (tab === 'genba') renderTodayGenba();
   if (tab === 'case') renderCaseList();
   if (tab === 'expense') renderExpenseList();
@@ -223,8 +233,20 @@ function switchTab(tab) {
 function showHomeModal() {
   document.getElementById('homeModal').classList.add('open');
   const firstName = currentUser.name.split(/[　 ]/)[0];
-  document.getElementById('homeStaffName').textContent = firstName;
+  const hour = new Date().getHours();
+  const greetingText = hour < 11 ? 'おはようございます' : hour < 17 ? 'お疲れさまです' : 'お疲れさまでした';
+  document.querySelector('#homeModal .greeting h2').innerHTML = `${greetingText}、<span id="homeStaffName">${firstName}</span>さん`;
   updateDate();
+
+  // 天気情報
+  try {
+    fetch('https://wttr.in/Gifu?format=%c+%t&lang=ja')
+      .then(r => r.text())
+      .then(text => {
+        const el = document.getElementById('weatherInfo');
+        if (el) el.innerHTML = `<span class="weather-icon">${text.trim().split(' ')[0] || '🌤️'}</span><span class="weather-text">岐阜市 ${text.trim()}</span>`;
+      }).catch(() => {});
+  } catch(e) {}
   renderHomeTodayGenba();
   renderHomeTomorrowGenba();
   renderHomeNotices();
@@ -668,6 +690,11 @@ function renderAttendanceHistory() {
 function showNewCaseModal() {
   document.getElementById('newCaseModal').classList.add('open');
   document.getElementById('caseDate').value = new Date().toISOString().slice(0, 10);
+  const staffSel = document.getElementById('caseStaff');
+  if (staffSel) {
+    staffSel.innerHTML = '<option value="">選択してください</option>' +
+      CONFIG.STAFF.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  }
 }
 
 function closeModal(id) {
@@ -698,6 +725,7 @@ function createCase() {
     customerName: name, customerPhone: phone, address: address,
     workType: workType,
     workTypeName: CONFIG.WORK_TYPES.find(w => w.id === workType)?.name || workType,
+    assignedStaff: document.getElementById('caseStaff')?.value || '',
     note: note, date: date, status: 'received',
     createdAt: new Date().toISOString(), createdBy: currentUser.name,
     photos: {}, checklist: [], timeRecords: [], expenses: [], disposals: [],
@@ -897,7 +925,7 @@ function deleteCase(caseId) {
 function renderTodayGenba() {
   const cases = getCases();
   const today = new Date().toISOString().slice(0, 10);
-  const todayCases = cases.filter(c => c.date === today && (c.status === 'confirmed' || c.status === 'working' || c.status === 'survey'));
+  const todayCases = cases.filter(c => c.date === today && c.status !== 'completed' && c.status !== 'settled');
 
   if (todayCases.length === 0) {
     document.getElementById('genbaSelectScreen').style.display = 'block';
@@ -939,6 +967,12 @@ function showGenbaWork() {
   document.getElementById('customerMemo').value = currentCase.customerMemo || '';
 
   renderRoleAssign();
+  // 役割分担のスタッフセレクトを更新
+  const roleSelect = document.getElementById('roleStaffSelect');
+  if (roleSelect) {
+    roleSelect.innerHTML = '<option value="">スタッフ</option>' +
+      CONFIG.STAFF.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  }
   renderToolsList();
   renderPhotoSteps();
   renderChecklist();
@@ -974,12 +1008,33 @@ function renderRoleAssign() {
     container.innerHTML = '<p style="font-size:13px; color:var(--sub); padding:8px 0;">役割分担は未設定です</p>';
     return;
   }
-  container.innerHTML = currentCase.roles.map(r => `
-    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border);">
+  container.innerHTML = currentCase.roles.map((r, i) => `
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border);">
       <span style="font-weight:500;">${r.staff}</span>
-      <span style="color:var(--sub);">${r.task}</span>
+      <span style="color:var(--sub); flex:1; text-align:right; margin-right:8px;">${r.task}</span>
+      <button onclick="deleteRole(${i})" style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:4px;">✕</button>
     </div>
   `).join('');
+}
+
+function addRole() {
+  if (!currentCase) return;
+  const staff = document.getElementById('roleStaffSelect').value;
+  const task = document.getElementById('roleTaskInput').value.trim();
+  if (!staff || !task) { showToast('スタッフと作業を入力してください'); return; }
+  if (!currentCase.roles) currentCase.roles = [];
+  currentCase.roles.push({ staff, task });
+  document.getElementById('roleStaffSelect').value = '';
+  document.getElementById('roleTaskInput').value = '';
+  updateCaseData();
+  renderRoleAssign();
+}
+
+function deleteRole(index) {
+  if (!currentCase) return;
+  currentCase.roles.splice(index, 1);
+  updateCaseData();
+  renderRoleAssign();
 }
 
 // ====== 道具リスト ======
@@ -994,6 +1049,7 @@ function renderToolsList() {
     <div class="checklist-item">
       <div class="checklist-check ${t.checked ? 'done' : ''}" onclick="toggleTool(${i})">${t.checked ? '✓' : ''}</div>
       <span class="checklist-text ${t.checked ? 'done' : ''}">${t.name}</span>
+      <button onclick="deleteTool(${i})" style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:4px;">✕</button>
     </div>
   `).join('');
 }
@@ -1013,6 +1069,13 @@ function addTool() {
 function toggleTool(index) {
   if (!currentCase) return;
   currentCase.tools[index].checked = !currentCase.tools[index].checked;
+  updateCaseData();
+  renderToolsList();
+}
+
+function deleteTool(index) {
+  if (!currentCase) return;
+  currentCase.tools.splice(index, 1);
   updateCaseData();
   renderToolsList();
 }
@@ -1104,6 +1167,7 @@ function renderChecklist() {
     <li class="checklist-item">
       <div class="checklist-check ${item.done ? 'done' : ''}" onclick="toggleCheckItem(${i})">${item.done ? '✓' : ''}</div>
       <span class="checklist-text ${item.done ? 'done' : ''}">${item.text}</span>
+      <button onclick="deleteCheckItem(${i})" style="background:none;border:none;color:var(--danger);font-size:16px;cursor:pointer;padding:4px;">✕</button>
     </li>
   `).join('');
 }
@@ -1123,6 +1187,14 @@ function getDefaultChecklist(workType) {
 function toggleCheckItem(index) {
   if (!currentCase) return;
   currentCase.checklist[index].done = !currentCase.checklist[index].done;
+  updateCaseData();
+  renderChecklist();
+  renderCompleteReport();
+}
+
+function deleteCheckItem(index) {
+  if (!currentCase) return;
+  currentCase.checklist.splice(index, 1);
   updateCaseData();
   renderChecklist();
   renderCompleteReport();
@@ -1693,7 +1765,7 @@ window.addEventListener('storage', (e) => {
     // 休み連絡が他タブで変更された場合、お知らせを更新
     if (typeof renderHomeNotices === 'function') renderHomeNotices();
   }
-  if (e.key && e.key.startsWith('tkb_saisei_attend_')) {
+  if (e.key && e.key.startsWith('f8_saisei_attend_')) {
     // 勤怠が他タブで変更された場合
     if (typeof checkTodayAttendance === 'function') checkTodayAttendance();
     if (typeof checkProxyAttendance === 'function') checkProxyAttendance();

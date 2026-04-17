@@ -187,6 +187,11 @@
         <div class="genba-card">
           <div class="genba-card-title"><span class="genba-card-icon">👥</span> 役割分担</div>
           <div id="roleAssignList"></div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <select class="form-select" id="roleStaffSelect" style="flex:1"><option value="">スタッフ</option></select>
+            <input type="text" class="form-input" id="roleTaskInput" placeholder="担当作業" style="flex:1">
+            <button class="btn btn-outline btn-sm" onclick="addRole()">追加</button>
+          </div>
         </div>
 
         <!-- お客さんの要望・注意事項 -->
@@ -512,6 +517,12 @@
     <div class="form-group">
       <label>作業予定日</label>
       <input type="date" class="form-input" id="caseDate">
+    </div>
+    <div class="form-group">
+      <label>担当スタッフ（任意）</label>
+      <select class="form-select" id="caseStaff">
+        <option value="">選択してください</option>
+      </select>
     </div>
     <button class="btn btn-gold" onclick="createCase()">案件を登録</button>
   </div>
