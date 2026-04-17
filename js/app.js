@@ -166,6 +166,13 @@ function doLogout() {
   localStorage.removeItem(LOGIN_KEY);
   document.getElementById('mainScreen').classList.remove('active');
   document.getElementById('loginScreen').classList.add('active');
+  // ログイン画面をリセット
+  document.getElementById('loginStep1').style.display = 'block';
+  document.getElementById('loginStep2').style.display = 'none';
+  document.getElementById('loginStaff').value = '';
+  pinBuffer = [];
+  pinMode = '';
+  selectedStaffName = '';
   closeModal('mypageModal');
 }
 
@@ -679,7 +686,13 @@ function createCase() {
   if (!workType) { showToast('作業内容を選択してください'); return; }
 
   const cases = getCases();
-  const seq = String(cases.length + 1).padStart(3, '0');
+  // 重複しない連番を生成（既存の最大番号+1）
+  const prefix = CONFIG.MGMT_PREFIX();
+  const existingNums = cases
+    .filter(c => c.id.startsWith(prefix))
+    .map(c => parseInt(c.id.split('-').pop()) || 0);
+  const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+  const seq = String(nextNum).padStart(3, '0');
   const caseData = {
     id: CONFIG.MGMT_PREFIX() + '-' + seq,
     customerName: name, customerPhone: phone, address: address,
@@ -765,8 +778,119 @@ function openCase(caseId) {
   const cases = getCases();
   currentCase = cases.find(c => c.id === caseId);
   if (!currentCase) return;
-  switchTab('genba');
-  showGenbaWork();
+  // 案件タブからの場合は詳細モーダル、今日の現場からの場合は作業画面
+  if (currentTab === 'case') {
+    showCaseDetail(caseId);
+  } else {
+    switchTab('genba');
+    showGenbaWork();
+  }
+}
+
+// ====== 案件詳細モーダル ======
+function showCaseDetail(caseId) {
+  const cases = getCases();
+  const c = cases.find(cs => cs.id === caseId);
+  if (!c) return;
+
+  document.getElementById('caseDetailTitle').textContent = `📋 ${c.id}`;
+  const statusConf = CONFIG.CASE_STATUS.find(s => s.id === c.status) || {};
+
+  const statusButtons = CONFIG.CASE_STATUS.map(s => {
+    const isCurrent = s.id === c.status;
+    return `<button class="filter-btn ${isCurrent ? 'active' : ''}" onclick="changeCaseStatus('${caseId}', '${s.id}')" style="font-size:11px; padding:6px 10px;">${s.name}</button>`;
+  }).join('');
+
+  document.getElementById('caseDetailBody').innerHTML = `
+    <div class="section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <span class="case-status" style="background:${statusConf.color};color:${statusConf.textColor};font-size:14px;padding:4px 12px;">${statusConf.name}</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="openEditCase('${caseId}')">✏️ 編集</button>
+          <button class="btn btn-sm" onclick="deleteCase('${caseId}')" style="background:var(--danger);color:#fff;">🗑️ 削除</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="genba-card">
+      <div style="font-size:16px; font-weight:700; margin-bottom:8px;">${c.customerName} 様</div>
+      <div style="font-size:14px; color:var(--sub); line-height:2;">
+        ${c.customerPhone ? `<div>📞 <a href="tel:${c.customerPhone}" style="color:var(--gold);">${c.customerPhone}</a></div>` : ''}
+        <div>📍 <a href="#" onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address || '')}','_blank');return false;" style="color:var(--gold);">${c.address || '未設定'}</a></div>
+        <div>🔨 ${c.workTypeName}</div>
+        <div>📅 ${c.date || '未定'}</div>
+        ${c.note ? `<div>📝 ${c.note}</div>` : ''}
+        ${c.customerMemo ? `<div>💬 ${c.customerMemo}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="genba-card">
+      <div class="genba-card-title">ステータス変更</div>
+      <div class="status-filter" style="flex-wrap:wrap;">${statusButtons}</div>
+    </div>
+
+    <button class="btn btn-primary" onclick="closeModal('caseDetailModal'); currentCase=getCases().find(c=>c.id==='${caseId}'); switchTab('genba'); showGenbaWork();" style="margin-top:12px;">🔨 作業画面を開く</button>
+  `;
+
+  document.getElementById('caseDetailModal').classList.add('open');
+}
+
+function changeCaseStatus(caseId, newStatus) {
+  const cases = getCases();
+  const c = cases.find(cs => cs.id === caseId);
+  if (!c) return;
+  c.status = newStatus;
+  saveCases(cases);
+  showCaseDetail(caseId);
+  showToast(`ステータスを「${CONFIG.CASE_STATUS.find(s => s.id === newStatus)?.name}」に変更しました`);
+}
+
+function openEditCase(caseId) {
+  closeModal('caseDetailModal');
+  const cases = getCases();
+  const c = cases.find(cs => cs.id === caseId);
+  if (!c) return;
+
+  document.getElementById('editCaseId').value = caseId;
+  document.getElementById('editCaseCustomerName').value = c.customerName || '';
+  document.getElementById('editCaseCustomerPhone').value = c.customerPhone || '';
+  document.getElementById('editCaseAddress').value = c.address || '';
+  document.getElementById('editCaseWorkType').value = c.workType || '';
+  document.getElementById('editCaseNote').value = c.note || '';
+  document.getElementById('editCaseDate').value = c.date || '';
+
+  document.getElementById('editCaseModal').classList.add('open');
+}
+
+function saveEditCase() {
+  const caseId = document.getElementById('editCaseId').value;
+  const cases = getCases();
+  const c = cases.find(cs => cs.id === caseId);
+  if (!c) return;
+
+  c.customerName = document.getElementById('editCaseCustomerName').value.trim();
+  c.customerPhone = document.getElementById('editCaseCustomerPhone').value.trim();
+  c.address = document.getElementById('editCaseAddress').value.trim();
+  c.workType = document.getElementById('editCaseWorkType').value;
+  c.workTypeName = CONFIG.WORK_TYPES.find(w => w.id === c.workType)?.name || c.workType;
+  c.note = document.getElementById('editCaseNote').value.trim();
+  c.date = document.getElementById('editCaseDate').value;
+
+  saveCases(cases);
+  closeModal('editCaseModal');
+  renderCaseList();
+  showToast('案件を更新しました');
+  showCaseDetail(caseId);
+}
+
+function deleteCase(caseId) {
+  if (!confirm('この案件を削除しますか？この操作は取り消せません。')) return;
+  let cases = getCases();
+  cases = cases.filter(c => c.id !== caseId);
+  saveCases(cases);
+  closeModal('caseDetailModal');
+  renderCaseList();
+  showToast('案件を削除しました');
 }
 
 // ====== 今日の現場タブ ======
@@ -925,18 +1049,47 @@ function takePhoto(stepId) {
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
+    compressImage(file, 800, 0.6, (compressedDataUrl) => {
       if (!currentCase) return;
       if (!currentCase.photos[stepId]) currentCase.photos[stepId] = [];
-      currentCase.photos[stepId].push(ev.target.result);
-      updateCaseData();
+      currentCase.photos[stepId].push(compressedDataUrl);
+      try {
+        updateCaseData();
+      } catch (err) {
+        // localStorage容量超過
+        currentCase.photos[stepId].pop();
+        showToast('保存容量が足りません。不要な写真を削除してください。');
+        return;
+      }
       renderPhotoSteps();
+      renderCompleteReport();
       showToast('写真を追加しました');
-    };
-    reader.readAsDataURL(file);
+    });
   };
   input.click();
+}
+
+// 画像圧縮（maxWidth px、quality 0-1）
+function compressImage(file, maxWidth, quality, callback) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      if (w > maxWidth) {
+        h = Math.round(h * maxWidth / w);
+        w = maxWidth;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 // ====== チェックリスト ======
